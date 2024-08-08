@@ -1,6 +1,6 @@
 ![PODMAN logo](https://raw.githubusercontent.com/containers/common/main/logos/podman-logo-full-vert.png)
 
-# Podman: A tool for managing OCI containers and pods
+# Sonata: A Qompass Fork of Podman
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/containers/podman)
 [![Go Report Card](https://goreportcard.com/badge/github.com/containers/libpod)](https://goreportcard.com/report/github.com/containers/libpod)
@@ -10,14 +10,6 @@
 Podman (the POD MANager) is a tool for managing containers and images, volumes mounted into those containers, and pods made from groups of containers.
 Podman runs containers on Linux, but can also be used on Mac and Windows systems using a Podman-managed virtual machine.
 Podman is based on libpod, a library for container lifecycle management that is also contained in this repository. The libpod library provides APIs for managing containers, pods, container images, and volumes.
-
-
-All releases are GPG signed. Public keys of members of the team approved to make releases are located [here](https://github.com/containers/release-keys/tree/main/podman).
-
-* Continuous Integration:
-  * [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/main)
-  * [GoDoc: ![GoDoc](https://godoc.org/github.com/containers/podman/libpod?status.svg)](https://godoc.org/github.com/containers/podman/libpod)
-  * [Downloads](DOWNLOADS.md)
 
 ## Overview and scope
 
@@ -179,29 +171,4 @@ you to manage and maintain those images and containers in a production environme
 familiar container cli commands.  For more details, see the
 [Container Tools Guide](https://github.com/containers/buildah/tree/main/docs/containertools).
 
-## Podman Hello
-```
-$ podman run quay.io/podman/hello
-Trying to pull quay.io/podman/hello:latest...
-Getting image source signatures
-Copying blob a6b3126f3807 done
-Copying config 25c667d086 done
-Writing manifest to image destination
-Storing signatures
-!... Hello Podman World ...!
 
-         .--"--.
-       / -     - \
-      / (O)   (O) \
-   ~~~| -=(,Y,)=- |
-    .---. /`  \   |~~
- ~/  o  o \~~~~.----. ~~
-  | =(X)= |~  / (O (O) \
-   ~~~~~~~  ~| =(Y_)=-  |
-  ~~~~    ~~~|   U      |~~
-
-Project:   https://github.com/containers/podman
-Website:   https://podman.io
-Documents: https://docs.podman.io
-Twitter:   @Podman_io
-```
