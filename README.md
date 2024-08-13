@@ -1,2 +1,2 @@
 # Sojourn
-Secure genAI Sandboxes
+Short-lived genAI Sandboxes

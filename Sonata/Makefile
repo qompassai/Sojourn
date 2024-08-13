@@ -28,12 +28,12 @@ EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-main} HEAD)
 HEAD ?= HEAD
 PROJECT := github.com/containers/podman
 GIT_BASE_BRANCH ?= origin/main
-LIBSONATA_INSTANCE := libsonata_dev
+LIBPOD_INSTANCE := libpod_dev
 PREFIX ?= /usr/local
 RELEASE_PREFIX = /usr
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
-LIBEXECSONATA ?= ${LIBEXECDIR}/sonata
+LIBEXECPODMAN ?= ${LIBEXECDIR}/podman
 MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= /etc
@@ -231,11 +231,11 @@ all: binaries docs
 
 .PHONY: binaries
 ifeq ($(shell uname -s),FreeBSD)
-binaries: podman podman-remote ## Build podman and podman-remote binaries
+binaries: sonata sonata-remote ## Build sonata and sonata-remote binaries
 else ifneq (, $(findstring $(GOOS),darwin windows))
-binaries: podman-remote ## Build podman-remote (client) only binaries
+binaries: sonata-remote ## Build sonata-remote (client) only binaries
 else
-binaries: podman podman-remote podman-testing podmansh rootlessport quadlet ## Build podman, podman-remote and rootlessport binaries quadlet
+binaries: sonata sonata-remote sonata-testing sonatash rootlessport quadlet ## Build sonata, sonata-remote and rootlessport binaries quadlet
 endif
 
 # Extract text following double-# for targets, as their description for
@@ -285,7 +285,7 @@ golangci-lint: .install.golangci-lint
 
 .PHONY: test/checkseccomp/checkseccomp
 test/checkseccomp/checkseccomp: $(wildcard test/checkseccomp/*.go)
-	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
+	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_SONATA)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
 
 .PHONY: test/testvol/testvol
 test/testvol/testvol: $(wildcard test/testvol/*.go)
@@ -293,11 +293,11 @@ test/testvol/testvol: $(wildcard test/testvol/*.go)
 
 .PHONY: volume-plugin-test-img
 volume-plugin-test-img:
-	./bin/podman build --network none -t quay.io/libpod/volume-plugin-test-img:$$(date +%Y%m%d) -f ./test/testvol/Containerfile .
+	./bin/sonata build --network none -t quay.io/libpod/volume-plugin-test-img:$$(date +%Y%m%d) -f ./test/testvol/Containerfile .
 
 .PHONY: test/goecho/goecho
 test/goecho/goecho: $(wildcard test/goecho/*.go)
-	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
+	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_SONATA)' -o $@ ./test/goecho
 
 # The ./test/version/version binary is executed in other make steps
 # so we have to make sure the version binary is built for NATIVE_GOARCH.
@@ -308,20 +308,17 @@ test/version/version: version/version.go
 codespell:
 	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"*.fish,RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L ddress,secon,passt,bu,hastable,te,clos,ans,pullrequest,uint,iff,od,seeked,splitted,marge,erro,hist,ether,specif -w
 
-# Code validation target that **DOES NOT** require building podman binaries
+# Code validation target that **DOES NOT** require building sonata binaries
 .PHONY: validate-source
 validate-source: lint .gitvalidation swagger-check tests-expect-exit pr-removes-fixed-skips
 
-# Code validation target that **DOES** require building podman binaries
+# Code validation target that **DOES** require building sonata binaries
 .PHONY: validate-binaries
 validate-binaries: man-page-check validate.completions
 
 .PHONY: validate
 validate: validate-source validate-binaries
 
-# The image used below is generated manually from contrib/validatepr/Containerfile in this podman repo.  The builds are
-# not automated right now.  The hope is that eventually the quay.io/libpod/fedora_podman is multiarch and can replace this
-# image in the future.
 .PHONY: validatepr
 validatepr:
 	$(PODMANCMD) run --rm \
@@ -349,14 +346,14 @@ vendor:
 
 
 # We define *-in-container targets for the following make targets. This allow the targets to be run in a container.
-# Note that the PODMANCMD can also be overridden to allow a different container CLI to be used on systems where podman is not already available.
+# Note that the SONATACMD can also be overridden to allow a different container CLI to be used on systems where podman is not already available.
 IN_CONTAINER_TARGETS = vendor validate
-PODMANCMD ?= podman
+SONATACMD ?= sonata
 IN_CONTAINER = $(patsubst %,%-in-container,$(IN_CONTAINER_TARGETS))
 
 .PHONY: $(IN_CONTAINER)
 $(IN_CONTAINER): %-in-container:
-	$(PODMANCMD) run --rm --env HOME=/root \
+	$(SONATACMD) run --rm --env HOME=/root \
 		-v $(CURDIR):/src -w /src \
 		--security-opt label=disable \
 		docker.io/library/golang:1.22 \
@@ -411,7 +408,7 @@ sonata-remote: $(SRCBINDIR)/sonata$(BINSFX)
 $(SRCBINDIR)/quadlet: $(SOURCES) go.mod go.sum
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
-		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
+		$(GO_LDFLAGS) '$(LDFLAGS_SONATA)' \
 		-tags "${BUILDTAGS}" \
 		-o $@ ./cmd/quadlet
 
@@ -421,7 +418,7 @@ sonata-remote-static-linux_amd64: $(SRCBINDIR)/sonata-remote-static-linux_amd64
 sonata-remote-static-linux_arm64: $(SRCBINDIR)/sonata-remote-static-linux_arm64
 
 .PHONY: sonata-winpath
-podman-winpath: $(SOURCES) go.mod go.sum
+sonata-winpath: $(SOURCES) go.mod go.sum
 	CGO_ENABLED=0 \
 		GOOS=windows \
 		$(GO) build \
@@ -431,7 +428,7 @@ podman-winpath: $(SOURCES) go.mod go.sum
 		./cmd/winpath
 
 .PHONY: sonata-mac-helper
-sonata-mac-helper: ## Build podman-mac-helper for macOS
+sonata-mac-helper: ## Build sonata-mac-helper for macOS
 	CGO_ENABLED=0 \
 		GOOS=darwin \
 		GOARCH=$(GOARCH) \
@@ -449,7 +446,7 @@ bin/rootlessport: $(SOURCES) go.mod go.sum
 .PHONY: rootlessport
 rootlessport: bin/rootlessport
 
-# podmansh calls `podman exec` into the `podmansh` container when used as
+# sonatash calls `sonata exec` into the `sonatash` container when used as
 # os.Args[0] and is intended to be set as a login shell for users.
 # Run: `man 1 podmansh` for details.
 podmansh: bin/sonatash
@@ -458,7 +455,7 @@ podmansh: bin/sonatash
 $(SRCBINDIR)/sonata-testing: $(SOURCES) go.mod go.sum
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
-		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
+		$(GO_LDFLAGS) '$(LDFLAGS_SONATA)' \
 		-tags "${BUILDTAGS}" \
 		-o $@ ./cmd/sonata-testing
 
