@@ -35,15 +35,15 @@ elif grep -i "rocky" /etc/system-release >/dev/null; then
     cat << EOF > /etc/yum.repos.d/Rocky-Vault.repo
 [vault]
 name=Rocky Vault
-baseurl=https://dl.rockylinux.org/vault/rocky/8.5/AppStream/\$basearch/os/
+baseurl=https://dl.rockylinux.org/vault/rocky/9.2/AppStream/\$basearch/os/
 gpgcheck=1
 enabled=1
 countme=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
 EOF
     dnf install -y git \
-        gcc-toolset-10-gcc-10.2.1-8.2.el8 \
-        gcc-toolset-10-gcc-c++-10.2.1-8.2.el8
+        gcc-toolset-12-gcc \
+        gcc-toolset-12-gcc-c++
 else
     echo "ERROR Unexpected distro"
     exit 1
@@ -60,7 +60,8 @@ if [ -n "${GOLANG_VERSION}" ]; then
         GO_ARCH="arm64"
     fi
     mkdir -p /usr/local
-    curl -s -L https://dl.google.com/go/go${GOLANG_VERSION}.linux-${GO_ARCH}.tar.gz | tar xz -C /usr/local
+    curl -s -L https://go.dev/dl/go1.22.5.linux-${GO_ARCH}.tar.gz | tar xz -C /usr/local
     ln -s /usr/local/go/bin/go /usr/local/bin/go
     ln -s /usr/local/go/bin/gofmt /usr/local/bin/gofmt
 fi
+ 
