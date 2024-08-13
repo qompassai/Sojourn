@@ -8,7 +8,7 @@
 #     to make finding them quicker.
 # 2.  Main entry-point targets, like "default", "all", and "help"
 # 3.  Targets for code formatting and validation
-# 4.  Primary build targets, like sonata and sonata-remote
+# 4.  Primary build targets, like podman and podman-remote
 # 5.  Secondary build targets, shell completions, static and multi-arch.
 # 6.  Targets that format and build documentation
 # 7.  Testing targets
@@ -18,6 +18,9 @@
 #
 ###
 ### Variables & Definitions
+###
+
+# Default shell `/bin/sh` has different meanings depending on the platform.
 SHELL := $(shell command -v bash;)
 GO ?= go
 GO_LDFLAGS:= $(shell if $(GO) version|grep -q gccgo ; then echo "-gccgoflags"; else echo "-ldflags"; fi)
@@ -28,12 +31,12 @@ EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-main} HEAD)
 HEAD ?= HEAD
 PROJECT := github.com/containers/podman
 GIT_BASE_BRANCH ?= origin/main
-LIBSONATA_INSTANCE := libsonata_dev
+LIBPOD_INSTANCE := libpod_dev
 PREFIX ?= /usr/local
 RELEASE_PREFIX = /usr
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
-LIBEXECSONATA ?= ${LIBEXECDIR}/sonata
+LIBEXECPODMAN ?= ${LIBEXECDIR}/podman
 MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= /etc
@@ -79,12 +82,12 @@ endif
 # This isn't what we actually build; it's a superset, used for target
 # dependencies. Basically: all *.go and *.c files, except *_test.go,
 # and except anything in a dot subdirectory. If any of these files is
-# newer than our target (bin/sonata{,-remote}), a rebuild is
+# newer than our target (bin/podman{,-remote}), a rebuild is
 # triggered.
 SOURCES = $(shell find . -path './.*' -prune -o \( \( -name '*.go' -o -name '*.c' \) -a ! -name '*_test.go' \) -print)
 
 BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
-CONTAINER_RUNTIME := $(shell command -v sonata 2> /dev/null || echo docker)
+CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
 
 # The 'sort' below is crucial: without it, 'make docs' behaves differently
@@ -111,18 +114,18 @@ ifdef SOURCE_DATE_EPOCH
 else
 	BUILD_INFO ?= $(shell date "+$(DATE_FMT)")
 endif
-LIBSONATA := ${PROJECT}/v5/libsonata
+LIBPOD := ${PROJECT}/v5/libpod
 GOFLAGS ?= -trimpath
-LDFLAGS_SONATA ?= \
-	$(if $(GIT_COMMIT),-X $(LIBSONATA)/define.gitCommit=$(GIT_COMMIT),) \
-	$(if $(BUILD_INFO),-X $(LIBSONATA)/define.buildInfo=$(BUILD_INFO),) \
-	-X $(LIBSONATA)/config._installPrefix=$(PREFIX) \
-	-X $(LIBSONATA)/config._etcDir=$(ETCDIR) \
+LDFLAGS_PODMAN ?= \
+	$(if $(GIT_COMMIT),-X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT),) \
+	$(if $(BUILD_INFO),-X $(LIBPOD)/define.buildInfo=$(BUILD_INFO),) \
+	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
+	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
 	-X $(PROJECT)/v5/pkg/systemd/quadlet._binDir=$(BINDIR) \
 	-X github.com/containers/common/pkg/config.additionalHelperBinariesDir=$(HELPER_BINARIES_DIR)\
 	$(EXTRA_LDFLAGS)
-LDFLAGS_SONATA_STATIC ?= \
-	$(LDFLAGS_SONATA) \
+LDFLAGS_PODMAN_STATIC ?= \
+	$(LDFLAGS_PODMAN) \
 	-extldflags=-static
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
 LIBSECCOMP_COMMIT := v2.3.3
@@ -145,7 +148,7 @@ RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/ver
 RELEASE_NUMBER = $(shell echo "$(call err_if_empty,RELEASE_VERSION)" | sed -e 's/^v\(.*\)/\1/')
 
 # If non-empty, logs all output from server during remote system testing
-SONATA_SERVER_LOG ?=
+PODMAN_SERVER_LOG ?=
 
 # Ensure GOBIN is not set so the default (`go env GOPATH`/bin) is used.
 override undefine GOBIN
@@ -154,26 +157,26 @@ export PATH := $(shell $(GO) env GOPATH)/bin:$(PATH)
 
 GOMD2MAN ?= ./test/tools/build/go-md2man
 
-# There are many possibly unexpected places where sonata is used.  For example
+# There are many possibly unexpected places where podman is used.  For example
 # by OpenWRT for routers and other similar small "edge" devices.  Testing builds
 # for otherwise non-mainstream architectures ensures we catch platform-specific
 # toolchain shenanigans early, for example:
-# https://github.com/containers/sonata/issues/8782
+# https://github.com/containers/podman/issues/8782
 CROSS_BUILD_TARGETS := \
-	bin/sonata.cross.linux.amd64 \
-	bin/sonata.cross.linux.ppc64le \
-	bin/sonata.cross.linux.arm \
-	bin/sonata.cross.linux.arm64 \
-	bin/sonata.cross.linux.386 \
-	bin/sonata.cross.linux.s390x \
-	bin/sonata.cross.linux.loong64 \
-	bin/sonata.cross.linux.mips \
-	bin/sonata.cross.linux.mipsle \
-	bin/sonata.cross.linux.mips64 \
-	bin/sonata.cross.linux.mips64le \
-	bin/sonata.cross.linux.riscv64 \
-	bin/sonata.cross.freebsd.amd64 \
-	bin/sonata.cross.freebsd.arm64
+	bin/podman.cross.linux.amd64 \
+	bin/podman.cross.linux.ppc64le \
+	bin/podman.cross.linux.arm \
+	bin/podman.cross.linux.arm64 \
+	bin/podman.cross.linux.386 \
+	bin/podman.cross.linux.s390x \
+	bin/podman.cross.linux.loong64 \
+	bin/podman.cross.linux.mips \
+	bin/podman.cross.linux.mipsle \
+	bin/podman.cross.linux.mips64 \
+	bin/podman.cross.linux.mips64le \
+	bin/podman.cross.linux.riscv64 \
+	bin/podman.cross.freebsd.amd64 \
+	bin/podman.cross.freebsd.arm64
 
 # Dereference variable $(1), return value if non-empty, otherwise raise an error.
 err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
@@ -368,45 +371,47 @@ $(IN_CONTAINER): %-in-container:
 ###
 
 # Make sure to warn in case we're building without the systemd buildtag.
-bin/sonata: $(SOURCES) go.mod go.sum
+bin/podman: $(SOURCES) go.mod go.sum
 ifeq (,$(findstring systemd,$(BUILDTAGS)))
-	@echo "Sonata is being compiled without the systemd build tag. \
+	@echo "Podman is being compiled without the systemd build tag. \
 		Install libsystemd on Ubuntu or systemd-devel on rpm based \
 		distro for journald support."
 endif
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
-		$(GO_LDFLAGS) '$(LDFLAGS_SONATA)' \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
 		-tags "$(BUILDTAGS)" \
-		-o $@ ./cmd/sonata
+		-o $@ ./cmd/podman
 	test -z "${SELINUXOPT}" || chcon -t container_runtime_exec_t $@
+
 # Disambiguate Linux vs Darwin/Windows platform binaries under distinct "bin" dirs
 $(SRCBINDIR):
 	mkdir -p $(SRCBINDIR)
 
 # '|' is to ignore SRCBINDIR mtime; see: info make 'Types of Prerequisites'
-$(SRCBINDIR)/sonata$(BINSFX): $(SOURCES) go.mod go.sum | $(SRCBINDIR)
+$(SRCBINDIR)/podman$(BINSFX): $(SOURCES) go.mod go.sum | $(SRCBINDIR)
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
-		$(GO_LDFLAGS) '$(LDFLAGS_SONATA)' \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
 		-tags "${REMOTETAGS}" \
-		-o $@ ./cmd/sonata
+		-o $@ ./cmd/podman
 
-$(SRCBINDIR)/sonata-remote-static-linux_%: GOARCH = $(patsubst $(SRCBINDIR)/sonata-remote-static-linux_%,%,$@)
-$(SRCBINDIR)/sonata-remote-static-linux_%: GOOS = linux
-$(SRCBINDIR)/sonata-remote-static $(SRCBINDIR)/sonata-remote-static-linux_amd64 $(SRCBINDIR)/sonata-remote-static-linux_arm64: $(SRCBINDIR) $(SOURCES) go.mod go.sum
+$(SRCBINDIR)/podman-remote-static-linux_%: GOARCH = $(patsubst $(SRCBINDIR)/podman-remote-static-linux_%,%,$@)
+$(SRCBINDIR)/podman-remote-static-linux_%: GOOS = linux
+$(SRCBINDIR)/podman-remote-static $(SRCBINDIR)/podman-remote-static-linux_amd64 $(SRCBINDIR)/podman-remote-static-linux_arm64: $(SRCBINDIR) $(SOURCES) go.mod go.sum
 	CGO_ENABLED=0 \
 	$(GO) build \
 		$(BUILDFLAGS) \
-		$(GO_LDFLAGS) '$(LDFLAGS_SONATA_STATIC)' \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN_STATIC)' \
 		-tags "${REMOTETAGS}" \
-		-o $@ ./cmd/sonata
+		-o $@ ./cmd/podman
 
-.PHONY: sonata
-sonata: bin/sonata
+.PHONY: podman
+podman: bin/podman
 
-.PHONY: sonata-remote
-sonata-remote: $(SRCBINDIR)/sonata$(BINSFX)
+# This will map to the right thing on Linux, Windows, and Mac.
+.PHONY: podman-remote
+podman-remote: $(SRCBINDIR)/podman$(BINSFX)
 
 $(SRCBINDIR)/quadlet: $(SOURCES) go.mod go.sum
 	$(GOCMD) build \
@@ -415,12 +420,15 @@ $(SRCBINDIR)/quadlet: $(SOURCES) go.mod go.sum
 		-tags "${BUILDTAGS}" \
 		-o $@ ./cmd/quadlet
 
-.PHONY: sonata-remote-static sonata-remote-static-linux_amd64 sonata-remote-static-linux_arm64
-sonata-remote-static: $(SRCBINDIR)/sonata-remote-static
-sonata-remote-static-linux_amd64: $(SRCBINDIR)/sonata-remote-static-linux_amd64
-sonata-remote-static-linux_arm64: $(SRCBINDIR)/sonata-remote-static-linux_arm64
+.PHONY: quadlet
+quadlet: bin/quadlet
 
-.PHONY: sonata-winpath
+.PHONY: podman-remote-static podman-remote-static-linux_amd64 podman-remote-static-linux_arm64
+podman-remote-static: $(SRCBINDIR)/podman-remote-static
+podman-remote-static-linux_amd64: $(SRCBINDIR)/podman-remote-static-linux_amd64
+podman-remote-static-linux_arm64: $(SRCBINDIR)/podman-remote-static-linux_arm64
+
+.PHONY: podman-winpath
 podman-winpath: $(SOURCES) go.mod go.sum
 	CGO_ENABLED=0 \
 		GOOS=windows \
@@ -430,15 +438,15 @@ podman-winpath: $(SOURCES) go.mod go.sum
 		-o bin/windows/winpath.exe \
 		./cmd/winpath
 
-.PHONY: sonata-mac-helper
-sonata-mac-helper: ## Build podman-mac-helper for macOS
+.PHONY: podman-mac-helper
+podman-mac-helper: ## Build podman-mac-helper for macOS
 	CGO_ENABLED=0 \
 		GOOS=darwin \
 		GOARCH=$(GOARCH) \
 		$(GO) build \
 		$(BUILDFLAGS) \
-		-o bin/darwin/sonata-mac-helper \
-		./cmd/sonata-mac-helper
+		-o bin/darwin/podman-mac-helper \
+		./cmd/podman-mac-helper
 
 bin/rootlessport: $(SOURCES) go.mod go.sum
 	CGO_ENABLED=$(CGO_ENABLED) \
@@ -452,18 +460,18 @@ rootlessport: bin/rootlessport
 # podmansh calls `podman exec` into the `podmansh` container when used as
 # os.Args[0] and is intended to be set as a login shell for users.
 # Run: `man 1 podmansh` for details.
-podmansh: bin/sonatash
-	if [ ! -f bin/sonatash ]; then ln -s sonata bin/sonatash; fi
+podmansh: bin/podman
+	if [ ! -f bin/podmansh ]; then ln -s podman bin/podmansh; fi
 
-$(SRCBINDIR)/sonata-testing: $(SOURCES) go.mod go.sum
+$(SRCBINDIR)/podman-testing: $(SOURCES) go.mod go.sum
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
 		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
 		-tags "${BUILDTAGS}" \
-		-o $@ ./cmd/sonata-testing
+		-o $@ ./cmd/podman-testing
 
-.PHONY: sonata-testing
-podman-testing: bin/sonata-testing
+.PHONY: podman-testing
+podman-testing: bin/podman-testing
 
 ###
 ### Secondary binary-build targets
@@ -476,16 +484,16 @@ ifneq ($(GOOS),darwin)
 endif
 
 # DO NOT USE: use local-cross instead
-bin/sonata.cross.%:
+bin/podman.cross.%:
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}"; \
 	GOARCH="$${TARGET##*.}"; \
 	CGO_ENABLED=0 \
 		$(GO) build \
 		$(BUILDFLAGS) \
-		$(GO_LDFLAGS) '$(LDFLAGS_SONATA)' \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
 		-tags '$(BUILDTAGS_CROSS)' \
-		-o "$@" ./cmd/sonata
+		-o "$@" ./cmd/podman
 
 .PHONY: local-cross
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile podman binary for multiple architectures
@@ -494,14 +502,14 @@ local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile podman binary for multiple 
 cross: local-cross
 
 .PHONY: completions
-completions: sonata sonata-remote
+completions: podman podman-remote
 	# key = shell, value = completion filename
 	declare -A outfiles=([bash]=%s [zsh]=_%s [fish]=%s.fish [powershell]=%s.ps1);\
 	for shell in $${!outfiles[*]}; do \
 	    for remote in "" "-remote"; do \
-		sonata="sonata$$remote"; \
+		podman="podman$$remote"; \
 		outfile=$$(printf "completions/$$shell/$${outfiles[$$shell]}" $$podman); \
-		./bin/$$sonata completion $$shell >| $$outfile; \
+		./bin/$$podman completion $$shell >| $$outfile; \
 	    done;\
 	done
 
@@ -519,9 +527,9 @@ $(MANPAGES): OUTFILE=$(subst source/markdown,build/man,$@)
 $(MANPAGES): %: %.md .install.md2man docdir
 
 # This does a bunch of filtering needed for man pages:
-#  1. Strip markdown link targets like '[sonata(1)](sonata.1.md)'
+#  1. Strip markdown link targets like '[podman(1)](podman.1.md)'
 #     to just '[podman(1)]', because man pages have no link mechanism;
-#  2. Then remove the brackets: '[sonata(1)]' -> 'sonata(1)';
+#  2. Then remove the brackets: '[podman(1)]' -> 'podman(1)';
 #  3. Then do the same for all other markdown links,
 #     like '[cgroups(7)](https://.....)'  -> just 'cgroups(7)';
 #  4. Remove HTML-ish stuff like '<sup>..</sup>' and '<a>..</a>'
@@ -537,8 +545,8 @@ $(MANPAGES): %: %.md .install.md2man docdir
 #     ASCII art. I (esm) believe the cost of releasing corrupt man pages
 #     is higher than the cost of carrying this kludge.
 #
-	@$(SED) -e 's/\((sonata[^)]*\.md\(#.*\)\?)\)//g'    \
-	       -e 's/\[\(sonata[^]]*\)\]/\1/g'              \
+	@$(SED) -e 's/\((podman[^)]*\.md\(#.*\)\?)\)//g'    \
+	       -e 's/\[\(podman[^]]*\)\]/\1/g'              \
 	       -e 's/\[\([^]]*\)](http[^)]\+)/\1/g'         \
 	       -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g'    \
 	       -e 's/\\$$/  /g' $<                         |\
@@ -561,9 +569,9 @@ docs: $(MANPAGES) ## Generate documentation
 # docs/remote-docs.sh requires a locally executable 'podman-remote' binary
 # in addition to the target-architecture binary (if different). That's
 # what the NATIVE_GOOS make does in the first line.
-sonata-remote-%-docs: sonata-remote
+podman-remote-%-docs: podman-remote
 	$(MAKE) clean-binaries
-	$(MAKE) sonata-remote GOOS=$(NATIVE_GOOS) GOARCH=$(NATIVE_GOARCH)
+	$(MAKE) podman-remote GOOS=$(NATIVE_GOOS) GOARCH=$(NATIVE_GOARCH)
 	$(eval GOOS := $*)
 	$(MAKE) docs $(MANPAGES)
 	rm -rf docs/build/remote
@@ -575,7 +583,7 @@ sonata-remote-%-docs: sonata-remote
 		$(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
 
 .PHONY: man-page-check
-man-page-check: bin/sonata docs
+man-page-check: bin/podman docs
 	hack/man-page-checker
 	hack/xref-helpmsgs-manpages
 	hack/man-page-table-check
@@ -603,8 +611,8 @@ validate.completions: SHELL:=/usr/bin/env bash # Set shell to bash for this targ
 validate.completions: completions
 	# Check if the files can be loaded by the shell
 	. completions/bash/podman
-	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_sonata; fi
-	if [ -x /bin/fish ]; then /bin/fish completions/fish/sonata.fish; fi
+	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_podman; fi
+	if [ -x /bin/fish ]; then /bin/fish completions/fish/podman.fish; fi
 
 # Note: Assumes test/python/requirements.txt is installed & available
 .PHONY: run-docker-py-tests
@@ -673,7 +681,7 @@ localmachine:
 localsystem:
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
-	if timeout -v 1 true; then SONATA=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T test/system/; else echo "Skipping $@: 'timeout -v' unavailable'"; fi
+	if timeout -v 1 true; then PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T test/system/; else echo "Skipping $@: 'timeout -v' unavailable'"; fi
 
 .PHONY: remotesystem
 remotesystem:
@@ -684,21 +692,21 @@ remotesystem:
 	# podman server spews copious unhelpful output; ignore it.
 	rc=0;\
 	if timeout -v 1 true; then \
-		SOCK_FILE=$(shell mktemp --dry-run --tmpdir sonata_tmp_XXXX);\
-		export SONATA_SOCKET=unix://$$SOCK_FILE; \
-		./bin/sonata system service --timeout=0 $$SONATA_SOCKET > $(if $(SONATA_SERVER_LOG),$(SONATA_SERVER_LOG),/dev/null) 2>&1 & \
+		SOCK_FILE=$(shell mktemp --dry-run --tmpdir podman_tmp_XXXX);\
+		export PODMAN_SOCKET=unix://$$SOCK_FILE; \
+		./bin/podman system service --timeout=0 $$PODMAN_SOCKET > $(if $(PODMAN_SERVER_LOG),$(PODMAN_SERVER_LOG),/dev/null) 2>&1 & \
 		retry=5;\
 		while [ $$retry -ge 0 ]; do\
 			echo Waiting for server...;\
 			sleep 1;\
-			./bin/SONATA-remote --url $$SONATA_SOCKET info >/dev/null 2>&1 && break;\
+			./bin/podman-remote --url $$PODMAN_SOCKET info >/dev/null 2>&1 && break;\
 			retry=$$(expr $$retry - 1);\
 		done;\
 		if [ $$retry -lt 0 ]; then\
-			echo "Error: ./bin/sonata system service did not come up on $$SOCK_FILE" >&2;\
+			echo "Error: ./bin/podman system service did not come up on $$SOCK_FILE" >&2;\
 			exit 1;\
 		fi;\
-		env PODMAN="$(CURDIR)/bin/sonata-remote --url $$SONATA_SOCKET" bats -T test/system/ ;\
+		env PODMAN="$(CURDIR)/bin/podman-remote --url $$PODMAN_SOCKET" bats -T test/system/ ;\
 		rc=$$?;\
 		kill %1;\
 		rm -f $$SOCK_FILE;\
@@ -709,14 +717,14 @@ remotesystem:
 
 .PHONY: localapiv2-bash
 localapiv2-bash:
-	env PODMAN=./bin/sonata stdbuf -o0 -e0 ./test/apiv2/test-apiv2
+	env PODMAN=./bin/podman stdbuf -o0 -e0 ./test/apiv2/test-apiv2
 
 .PHONY: localapiv2-python
 localapiv2-python:
-	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf PODMAN=./bin/sonata \
+	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf PODMAN=./bin/podman \
 		pytest --verbose --disable-warnings ./test/apiv2/python
 	touch test/__init__.py
-	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf SONATA=./bin/sonata \
+	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf PODMAN=./bin/podman \
 		pytest --verbose --disable-warnings ./test/python/docker
 	rm -f test/__init__.py
 
@@ -759,8 +767,8 @@ pr-removes-fixed-skips:
 ### Release/Packaging targets
 ###
 
-.PHONY: sonata-release
-sonata-release: sonata-release-$(GOARCH).tar.gz  # Build all Linux binaries for $GOARCH, docs., and installation tree, into a tarball.
+.PHONY: podman-release
+podman-release: podman-release-$(GOARCH).tar.gz  # Build all Linux binaries for $GOARCH, docs., and installation tree, into a tarball.
 
 # The following two targets are nuanced and complex:
 # Cross-building the podman-remote documentation requires a functional
@@ -771,7 +779,7 @@ sonata-release: sonata-release-$(GOARCH).tar.gz  # Build all Linux binaries for 
 # way to deal with this, is via multiple conditional (nested) `make`
 # calls along with careful manipulation of `$GOOS` and `$GOARCH`.
 
-sonata-release-%.tar.gz: test/version/version
+podman-release-%.tar.gz: test/version/version
 	$(eval tmpsubdir := $(shell mktemp -d podman_tmp_XXXX))
 	$(eval releasedir := podman-v$(call err_if_empty,RELEASE_NUMBER))
 	$(eval _dstargs := "DESTDIR=$(tmpsubdir)/$(releasedir)" "PREFIX=$(RELEASE_PREFIX)")
@@ -790,27 +798,27 @@ sonata-release-%.tar.gz: test/version/version
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(tmpsubdir)"
 
-sonata-remote-release-%.zip: test/version/version ## Build sonata-remote for %=$GOOS_$GOARCH, and docs. into an installation zip.
-	$(eval tmpsubdir := $(shell mktemp -d sonata_tmp_XXXX))
-	$(eval releasedir := sonata-$(call err_if_empty,RELEASE_NUMBER))
+podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$GOOS_$GOARCH, and docs. into an installation zip.
+	$(eval tmpsubdir := $(shell mktemp -d podman_tmp_XXXX))
+	$(eval releasedir := podman-$(call err_if_empty,RELEASE_NUMBER))
 	$(eval _dstargs := "DESTDIR=$(tmpsubdir)/$(releasedir)" "PREFIX=$(RELEASE_PREFIX)")
 	$(eval GOOS := $(firstword $(subst _, ,$*)))
 	$(eval GOARCH := $(lastword $(subst _, ,$*)))
 	$(eval _GOPLAT := GOOS=$(call err_if_empty,GOOS) GOARCH=$(call err_if_empty,GOARCH))
 	mkdir -p "$(call err_if_empty,tmpsubdir)/$(releasedir)"
 	$(MAKE) GOOS=$(GOOS) GOARCH=$(GOARCH) \
-		clean-binaries sonata-remote-$(GOOS)-docs
+		clean-binaries podman-remote-$(GOOS)-docs
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then \
 		$(MAKE) CGO_ENABLED=0 $(GOPLAT) BUILDTAGS="$(BUILDTAGS_CROSS)" \
-			clean-binaries sonata-remote; \
+			clean-binaries podman-remote; \
 	else \
-		$(MAKE) $(GOPLAT) sonata-remote; \
+		$(MAKE) $(GOPLAT) podman-remote; \
 	fi
 	if [[ "$(GOOS)" == "windows" ]]; then \
 		$(MAKE) $(GOPLAT) TMPDIR="" win-gvproxy; \
 	fi
 	if [[ "$(GOOS)" == "darwin" ]]; then \
-		$(MAKE) $(GOPLAT) sonata-mac-helper;\
+		$(MAKE) $(GOPLAT) podman-mac-helper;\
 	fi
 	cp -r ./docs/build/remote/$(GOOS) "$(tmpsubdir)/$(releasedir)/docs/"
 	cp ./contrib/remote/containers.conf "$(tmpsubdir)/$(releasedir)/"
@@ -835,14 +843,14 @@ rpm:  ## Build rpm packages
 ### Installation targets
 ###
 
-# Remember that rpms install exec to /usr/bin/sonata while a `make install`
-# installs them to /usr/local/bin/sonata which is likely before. Always use
-# a full path to test installed sonata or you risk to call another executable.
+# Remember that rpms install exec to /usr/bin/podman while a `make install`
+# installs them to /usr/local/bin/podman which is likely before. Always use
+# a full path to test installed podman or you risk to call another executable.
 .PHONY: rpm-install
 rpm-install: package  ## Install rpm packages
 	$(call err_if_empty,PKG_MANAGER) -y install rpm/RPMS/*/*.rpm
-	/usr/bin/sonata version
-	/usr/bin/sonata info  # will catch a broken conmon
+	/usr/bin/podman version
+	/usr/bin/podman info  # will catch a broken conmon
 
 .PHONY: install
 install: install.bin install.remote install.man install.systemd  ## Install binaries to system locations
@@ -854,46 +862,46 @@ install.catatonit:
 .PHONY: install.remote
 install.remote:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
-	install ${SELINUXOPT} -m 755 $(SRCBINDIR)/sonata$(BINSFX) \
-		$(DESTDIR)$(BINDIR)/sonanta$(BINSFX)
+	install ${SELINUXOPT} -m 755 $(SRCBINDIR)/podman$(BINSFX) \
+		$(DESTDIR)$(BINDIR)/podman$(BINSFX)
 	test "${GOOS}" != "windows" || \
 		install -m 755 $(SRCBINDIR)/win-sshproxy.exe $(DESTDIR)$(BINDIR)
 	test "${GOOS}" != "windows" || \
 		install -m 755 $(SRCBINDIR)/gvproxy.exe $(DESTDIR)$(BINDIR)
 	test "${GOOS}" != "darwin" || \
-		install -m 755 $(SRCBINDIR)/sonata-mac-helper $(DESTDIR)$(BINDIR)
+		install -m 755 $(SRCBINDIR)/podman-mac-helper $(DESTDIR)$(BINDIR)
 	test -z "${SELINUXOPT}" || \
-		chcon --verbose --reference=$(DESTDIR)$(BINDIR)/sonata-remote \
-		bin/sonata-remote
+		chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman-remote \
+		bin/podman-remote
 
 .PHONY: install.bin
 install.bin:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
-	install ${SELINUXOPT} -m 755 bin/sonata $(DESTDIR)$(BINDIR)/sonata
-	ln -sf sonata $(DESTDIR)$(BINDIR)/sonatash
-	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/sonata bin/sonata
-	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(LIBEXECSONATA)
+	install ${SELINUXOPT} -m 755 bin/podman $(DESTDIR)$(BINDIR)/podman
+	ln -sf podman $(DESTDIR)$(BINDIR)/podmansh
+	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(LIBEXECPODMAN)
 ifneq ($(shell uname -s),FreeBSD)
-	install ${SELINUXOPT} -m 755 bin/rootlessport $(DESTDIR)$(LIBEXECSONATA)/rootlessport
-	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(LIBEXECSONATA)/rootlessport bin/rootlessport
-	install ${SELINUXOPT} -m 755 bin/quadlet $(DESTDIR)$(LIBEXECSONATA)/quadlet
+	install ${SELINUXOPT} -m 755 bin/rootlessport $(DESTDIR)$(LIBEXECPODMAN)/rootlessport
+	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(LIBEXECPODMAN)/rootlessport bin/rootlessport
+	install ${SELINUXOPT} -m 755 bin/quadlet $(DESTDIR)$(LIBEXECPODMAN)/quadlet
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(SYSTEMDGENERATORSDIR)
-	ln -sfr $(DESTDIR)$(LIBEXECSONATA)/quadlet $(DESTDIR)$(SYSTEMDGENERATORSDIR)/sonata-system-generator
+	ln -sfr $(DESTDIR)$(LIBEXECPODMAN)/quadlet $(DESTDIR)$(SYSTEMDGENERATORSDIR)/podman-system-generator
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(USERSYSTEMDGENERATORSDIR)
-	ln -sfr $(DESTDIR)$(LIBEXECSONATA)/quadlet $(DESTDIR)$(USERSYSTEMDGENERATORSDIR)/sonata-user-generator
+	ln -sfr $(DESTDIR)$(LIBEXECPODMAN)/quadlet $(DESTDIR)$(USERSYSTEMDGENERATORSDIR)/podman-user-generator
 	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${TMPFILESDIR}
-	install ${SELINUXOPT} -m 644 contrib/tmpfile/sonata.conf $(DESTDIR)${TMPFILESDIR}/sonata.conf
+	install ${SELINUXOPT} -m 644 contrib/tmpfile/podman.conf $(DESTDIR)${TMPFILESDIR}/podman.conf
 endif
 
 .PHONY: install.testing
 install.testing:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
-	install ${SELINUXOPT} -m 755 bin/sonata-testing $(DESTDIR)$(BINDIR)/sonata-testing
+	install ${SELINUXOPT} -m 755 bin/podman-testing $(DESTDIR)$(BINDIR)/podman-testing
 
 .PHONY: install.modules-load
 install.modules-load: # This should only be used by distros which might use iptables-legacy, this is not needed on RHEL
 	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${MODULESLOADDIR}
-	install ${SELINUXOPT} -m 644 contrib/modules-load.d/sonata-iptables.conf $(DESTDIR)${MODULESLOADDIR}/sonata-iptables.conf
+	install ${SELINUXOPT} -m 644 contrib/modules-load.d/podman-iptables.conf $(DESTDIR)${MODULESLOADDIR}/podman-iptables.conf
 
 .PHONY: install.man
 install.man:
@@ -907,14 +915,14 @@ install.man:
 .PHONY: install.completions
 install.completions:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)${BASHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/bash/sonata $(DESTDIR)${BASHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/bash/sonata-remote $(DESTDIR)${BASHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/bash/podman $(DESTDIR)${BASHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/bash/podman-remote $(DESTDIR)${BASHINSTALLDIR}
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)${ZSHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/zsh/_sonata $(DESTDIR)${ZSHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/zsh/_sonata-remote $(DESTDIR)${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/zsh/_podman $(DESTDIR)${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/zsh/_podman-remote $(DESTDIR)${ZSHINSTALLDIR}
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)${FISHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/fish/sonata.fish $(DESTDIR)${FISHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/fish/sonata-remote.fish $(DESTDIR)${FISHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/fish/podman.fish $(DESTDIR)${FISHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/fish/podman-remote.fish $(DESTDIR)${FISHINSTALLDIR}
 	# There is no common location for powershell files so do not install them. Users have to source the file from their powershell profile.
 
 .PHONY: install.docker
@@ -926,10 +934,10 @@ install.docker:
 	rm ${INTERPOLATED_DOCKER_SCRIPT}
 	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${SYSTEMDDIR}  $(DESTDIR)${USERSYSTEMDDIR} $(DESTDIR)${TMPFILESDIR} $(DESTDIR)${USERTMPFILESDIR}
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)${ETCDIR}/profile.d
-	install ${SELINUXOPT} -m 644 docker/sonata-docker.sh $(DESTDIR)${ETCDIR}/profile.d/sonata-docker.sh
-	install ${SELINUXOPT} -m 644 docker/sonata-docker.csh $(DESTDIR)${ETCDIR}/profile.d/sonata-docker.csh
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata-docker.conf -t $(DESTDIR)${TMPFILESDIR}
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata-docker.conf -t $(DESTDIR)${USERTMPFILESDIR}
+	install ${SELINUXOPT} -m 644 docker/podman-docker.sh $(DESTDIR)${ETCDIR}/profile.d/podman-docker.sh
+	install ${SELINUXOPT} -m 644 docker/podman-docker.csh $(DESTDIR)${ETCDIR}/profile.d/podman-docker.csh
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t $(DESTDIR)${TMPFILESDIR}
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t $(DESTDIR)${USERTMPFILESDIR}
 
 .PHONY: install.docker-docs
 install.docker-docs:
@@ -943,35 +951,35 @@ install.docker-full: install.docker install.docker-docs
 
 .PHONY: install.systemd
 ifneq (,$(findstring systemd,$(BUILDTAGS)))
-SONATA_UNIT_FILES = contrib/systemd/auto-update/sonata-auto-update.service \
-		    contrib/systemd/system/sonata.service \
-		    contrib/systemd/system/sonata-restart.service \
-		    contrib/systemd/system/sonata-kube@.service \
-		    contrib/systemd/system/sonata-clean-transient.service
+PODMAN_UNIT_FILES = contrib/systemd/auto-update/podman-auto-update.service \
+		    contrib/systemd/system/podman.service \
+		    contrib/systemd/system/podman-restart.service \
+		    contrib/systemd/system/podman-kube@.service \
+		    contrib/systemd/system/podman-clean-transient.service
 
 %.service: %.service.in
-	sed -e 's;@@SONATA@@;$(BINDIR)/sonata;g' $< >$@.tmp.$$ \
+	sed -e 's;@@PODMAN@@;$(BINDIR)/podman;g' $< >$@.tmp.$$ \
 		&& mv -f $@.tmp.$$ $@
 
-install.systemd: $(SONATA_UNIT_FILES)
+install.systemd: $(PODMAN_UNIT_FILES)
 	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${SYSTEMDDIR}  $(DESTDIR)${USERSYSTEMDDIR}
 	# User services
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/sonata-auto-update.service $(DESTDIR)${USERSYSTEMDDIR}/sonata-auto-update.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/sonata-auto-update.timer $(DESTDIR)${USERSYSTEMDDIR}/sonata-auto-update.timer
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata.socket $(DESTDIR)${USERSYSTEMDDIR}/sonata.socket
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata.service $(DESTDIR)${USERSYSTEMDDIR}/sonata.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata-restart.service $(DESTDIR)${USERSYSTEMDDIR}/sonata-restart.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata-kube@.service $(DESTDIR)${USERSYSTEMDDIR}/sonata-kube@.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata-clean-transient.service $(DESTDIR)${USERSYSTEMDDIR}/sonata-clean-transient.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.service $(DESTDIR)${USERSYSTEMDDIR}/podman-auto-update.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.timer $(DESTDIR)${USERSYSTEMDDIR}/podman-auto-update.timer
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.socket $(DESTDIR)${USERSYSTEMDDIR}/podman.socket
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.service $(DESTDIR)${USERSYSTEMDDIR}/podman.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service $(DESTDIR)${USERSYSTEMDDIR}/podman-restart.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-kube@.service $(DESTDIR)${USERSYSTEMDDIR}/podman-kube@.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-clean-transient.service $(DESTDIR)${USERSYSTEMDDIR}/podman-clean-transient.service
 	# System services
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/sonata-auto-update.service $(DESTDIR)${SYSTEMDDIR}/sonata-auto-update.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/sonata-auto-update.timer $(DESTDIR)${SYSTEMDDIR}/sonata-auto-update.timer
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata.socket $(DESTDIR)${SYSTEMDDIR}/sonata.socket
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata.service $(DESTDIR)${SYSTEMDDIR}/sonata.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata-restart.service $(DESTDIR)${SYSTEMDDIR}/sonata-restart.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata-kube@.service $(DESTDIR)${SYSTEMDDIR}/sonata-kube@.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/sonata-clean-transient.service $(DESTDIR)${SYSTEMDDIR}/sonata-clean-transient.service
-	rm -f $(SONATA_UNIT_FILES)
+	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.service $(DESTDIR)${SYSTEMDDIR}/podman-auto-update.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.timer $(DESTDIR)${SYSTEMDDIR}/podman-auto-update.timer
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.socket $(DESTDIR)${SYSTEMDDIR}/podman.socket
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.service $(DESTDIR)${SYSTEMDDIR}/podman.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service $(DESTDIR)${SYSTEMDDIR}/podman-restart.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-kube@.service $(DESTDIR)${SYSTEMDDIR}/podman-kube@.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-clean-transient.service $(DESTDIR)${SYSTEMDDIR}/podman-clean-transient.service
+	rm -f $(PODMAN_UNIT_FILES)
 else
 install.systemd:
 endif
@@ -1015,17 +1023,17 @@ install.tools: .install.golangci-lint ## Install needed tools
 .PHONY: release-artifacts
 release-artifacts: clean-binaries
 	mkdir -p release/
-	$(MAKE) sonata-remote-release-darwin_amd64.zip
-	mv sonata-remote-release-darwin_amd64.zip release/
-	$(MAKE) sonata-remote-release-darwin_arm64.zip
-	mv sonata-remote-release-darwin_arm64.zip release/
-	$(MAKE) sonata-remote-release-windows_amd64.zip
-	mv sonata-remote-release-windows_amd64.zip release/
-	$(MAKE) sonata-remote-static-linux_amd64
-	tar -cvzf sonata-remote-static-linux_amd64.tar.gz bin/sonata-remote-static-linux_amd64
-	$(MAKE) sonata-remote-static-linux_arm64
-	tar -cvzf sonata-remote-static-linux_arm64.tar.gz bin/sonata-remote-static-linux_arm64
-	mv sonata-remote-static-linux*.tar.gz release/
+	$(MAKE) podman-remote-release-darwin_amd64.zip
+	mv podman-remote-release-darwin_amd64.zip release/
+	$(MAKE) podman-remote-release-darwin_arm64.zip
+	mv podman-remote-release-darwin_arm64.zip release/
+	$(MAKE) podman-remote-release-windows_amd64.zip
+	mv podman-remote-release-windows_amd64.zip release/
+	$(MAKE) podman-remote-static-linux_amd64
+	tar -cvzf podman-remote-static-linux_amd64.tar.gz bin/podman-remote-static-linux_amd64
+	$(MAKE) podman-remote-static-linux_arm64
+	tar -cvzf podman-remote-static-linux_arm64.tar.gz bin/podman-remote-static-linux_arm64
+	mv podman-remote-static-linux*.tar.gz release/
 	cd release/; sha256sum *.zip *.tar.gz > shasums
 
 .PHONY: uninstall
@@ -1036,19 +1044,19 @@ uninstall:
 	for i in $(filter %.5,$(MANPAGES_DEST)); do \
 		rm -f $(DESTDIR)$(MANDIR)/man5/$$(basename $${i}); \
 	done
-	# Remove sonata and remote bin
-	rm -f $(DESTDIR)$(BINDIR)/sonata
-	rm -f $(DESTDIR)$(BINDIR)/sonata-remote
+	# Remove podman and remote bin
+	rm -f $(DESTDIR)$(BINDIR)/podman
+	rm -f $(DESTDIR)$(BINDIR)/podman-remote
 	# Remove related config files
-	rm -f $(DESTDIR)${ETCDIR}/cni/net.d/87-sonata-bridge.conflist
-	rm -f $(DESTDIR)${TMPFILESDIR}/sonata.conf
-	rm -f $(DESTDIR)${SYSTEMDDIR}/io.sonata.socket
-	rm -f $(DESTDIR)${USERSYSTEMDDIR}/io.sonata.socket
-	rm -f $(DESTDIR)${SYSTEMDDIR}/io.sonata.service
-	rm -f $(DESTDIR)${SYSTEMDDIR}/sonata.service
-	rm -f $(DESTDIR)${SYSTEMDDIR}/sonata.socket
-	rm -f $(DESTDIR)${USERSYSTEMDDIR}/sonata.socket
-	rm -f $(DESTDIR)${USERSYSTEMDDIR}/sonata.service
+	rm -f $(DESTDIR)${ETCDIR}/cni/net.d/87-podman-bridge.conflist
+	rm -f $(DESTDIR)${TMPFILESDIR}/podman.conf
+	rm -f $(DESTDIR)${SYSTEMDDIR}/io.podman.socket
+	rm -f $(DESTDIR)${USERSYSTEMDDIR}/io.podman.socket
+	rm -f $(DESTDIR)${SYSTEMDDIR}/io.podman.service
+	rm -f $(DESTDIR)${SYSTEMDDIR}/podman.service
+	rm -f $(DESTDIR)${SYSTEMDDIR}/podman.socket
+	rm -f $(DESTDIR)${USERSYSTEMDDIR}/podman.socket
+	rm -f $(DESTDIR)${USERSYSTEMDDIR}/podman.service
 
 .PHONY: clean-binaries
 clean-binaries: ## Remove platform/architecture specific binary files
@@ -1059,10 +1067,10 @@ clean-binaries: ## Remove platform/architecture specific binary files
 clean: clean-binaries ## Clean all make artifacts
 	rm -rf \
 		_output \
-		$(wildcard sonata-*.msi) \
-		$(wildcard sonata-remote*.zip) \
-		$(wildcard sonata_tmp_*) \
-		$(wildcard sonata*.tar.gz) \
+		$(wildcard podman-*.msi) \
+		$(wildcard podman-remote*.zip) \
+		$(wildcard podman_tmp_*) \
+		$(wildcard podman*.tar.gz) \
 		build \
 		test/checkseccomp/checkseccomp \
 		test/goecho/goecho \
