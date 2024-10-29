@@ -1,22 +1,22 @@
-alias build := youki-release
-alias youki := youki-dev
+alias build := harmony-release
+alias harmony := harmony-dev
 
-KIND_CLUSTER_NAME := 'youki'
+KIND_CLUSTER_NAME := 'harmony'
 
 cwd := justfile_directory()
 
 # build
 
 # build all binaries
-build-all: youki-release contest
+build-all: harmony-release contest
 
-# build youki in dev mode
-youki-dev:
-    {{ cwd }}/scripts/build.sh -o {{ cwd }} -c youki
+# build harmony in dev mode
+harmony-dev:
+    {{ cwd }}/scripts/build.sh -o {{ cwd }} -c harmony
 
-# build youki in release mode
-youki-release:
-    {{ cwd }}/scripts/build.sh -o {{ cwd }} -r -c youki
+# build harmony in release mode
+harmony-release:
+    {{ cwd }}/scripts/build.sh -o {{ cwd }} -r -c harmony
 
 # build runtimetest binary
 runtimetest:
@@ -54,23 +54,23 @@ test-oci:
     {{ cwd }}/scripts/oci_integration_tests.sh {{ cwd }}
 
 # run rust oci integration tests
-test-contest: youki-release contest
-    sudo {{ cwd }}/scripts/contest.sh {{ cwd }}/youki
+test-contest: harmony-release contest
+    sudo {{ cwd }}/scripts/contest.sh {{ cwd }}/harmony
 
 # validate rust oci integration tests on runc
 validate-contest-runc: contest
     sudo RUNTIME_KIND="runc" {{ cwd }}/scripts/contest.sh runc
 
-# test podman rootless works with youki
+# test podman rootless works with harmony
 test-rootless-podman:
-    {{ cwd }}/tests/rootless-tests/run.sh {{ cwd }}/youki
+    {{ cwd }}/tests/rootless-tests/run.sh {{ cwd }}/harmony
 
-# test docker-in-docker works with youki
+# test docker-in-docker works with harmony
 test-dind:
     {{ cwd }}/tests/dind/run.sh
 
 # run containerd integration tests
-containerd-test: youki-dev
+containerd-test: harmony-dev
     VAGRANT_VAGRANTFILE=Vagrantfile.containerd2youki vagrant up
     VAGRANT_VAGRANTFILE=Vagrantfile.containerd2youki vagrant provision --provision-with test
 
@@ -169,9 +169,29 @@ ci-prepare:
         fi
     fi
 
-    echo "Unknown system. The CI is only configured for Ubuntu. You will need to forge your own path. Good luck!"
+    # Check if system is Arch Linux
+    if [[ -f /etc/os-release ]]; then
+        source /etc/os-release
+        if [[ $ID == "arch" ]]; then
+            echo "System is Arch Linux"
+            pacman -Syu --noconfirm
+            pacman -S --noconfirm \
+                pkgconf \
+                systemd \
+                base-devel \
+                elfutils \
+                libseccomp \
+                clang \
+                openssl \
+                criu
+            exit 0
+        fi
+    fi
+
+    echo "Unknown system. The CI is only configured for Ubuntu or Arch Linux. You will need to forge your own path. Good luck!"
     exit 1
 
+# prepare musl dependencies in CI
 ci-musl-prepare: ci-prepare
     #!/usr/bin/env bash
     set -euo pipefail
@@ -189,9 +209,21 @@ ci-musl-prepare: ci-prepare
         fi
     fi
 
-    echo "Unknown system. The CI is only configured for Ubuntu. You will need to forge your own path. Good luck!"
-    exit 1
+    # Check if system is Arch Linux
+    if [[ -f /etc/os-release ]]; then
+        source /etc/os-release
+        if [[ $ID == "arch" ]]; then
+            echo "System is Arch Linux"
+            pacman -Syu --noconfirm
+            pacman -S --noconfirm \
+                musl \
+                rust-musl
+            exit 0
+        fi
+    fi
 
+    echo "Unknown system. The CI is only configured for Ubuntu or Arch Linux. You will need to forge your own path. Good luck!"
+    exit 1
 version-up version:
     #!/usr/bin/bash
     set -ex

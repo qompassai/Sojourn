@@ -1,31 +1,19 @@
-# youki: A container runtime in Rust
-
-[![Discord](https://img.shields.io/discord/849943000770412575.svg?logo=discord)](https://discord.gg/zHnyXKSQFD)
-[![GitHub contributors](https://img.shields.io/github/contributors/containers/youki)](https://github.com/containers/youki/graphs/contributors)
-[![Github CI](https://github.com/containers/youki/actions/workflows/basic.yml/badge.svg?branch=main)](https://github.com/containers/youki/actions)
-[![codecov](https://codecov.io/gh/containers/youki/branch/main/graph/badge.svg)](https://codecov.io/gh/containers/youki)
+# Harmony: a Qompass implementation of youki for memory-safe containerization
 
 <p align="center">
   <img src="docs/youki.png" width="450">
 </p>
 
-**youki** is an implementation of the [OCI runtime-spec](https://github.com/opencontainers/runtime-spec) in Rust, similar to [runc](https://github.com/opencontainers/runc).  
-Your ideas are welcome [here](https://github.com/containers/youki/issues/10).
+**youki** is an implementation of the [OCI runtime-spec](https://github.com/opencontainers/runtime-spec) in Rust, similar to [runc](https://github.com/opencontainers/runc).\\
 
-# 🏷️ About the name
-
-youki is pronounced as /joʊki/ or yoh-key.
-youki is named after the Japanese word 'youki', which means 'a container'. In Japanese language, youki also means 'cheerful', 'merry', or 'hilarious'.
-
-# 🚀 Quick Start
-
-> [!TIP]
-> You can immediately set up your environment with youki on GitHub Codespaces and try it out.  
+> \[!TIP\]
+> You can immediately set up your environment with youki on GitHub Codespaces and try it out.
 >
 > [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/containers/youki?quickstart=1)
+>
 > ```console
 > $ just build
-> $ docker run --runtime youki hello-world
+> $ docker run --runtime harmony hello-world
 > $ sudo podman run --cgroup-manager=cgroupfs --runtime /workspaces/youki/youki hello-world
 > ```
 
@@ -33,53 +21,59 @@ youki is named after the Japanese word 'youki', which means 'a container'. In Ja
 
 # 🎯 Motivation
 
-Here is why we are writing a new container runtime in Rust.
+- Harmony is based on Youki, a great project that aims to make use of the memory safety or Rust for containerized applications.
+  Our main aim is to implement this as a lightweight but fully functional replacment for Docker for people and organizations
+  that are at a disadvantage with their infrastructure and/or talent.
 
-- Rust is one of the best languages to implement the oci-runtime spec. Many very nice container tools are currently written in Go. However, the container runtime requires the use of system calls, which requires a bit of special handling when implemented in Go. This tricky (e.g. _namespaces(7)_, _fork(2)_); with Rust too, but it's not that tricky. And, unlike in C, Rust provides the benefit of memory safety. While Rust is not yet a major player in the container field, it has the potential to contribute a lot: something this project attempts to exemplify.
-- youki has the potential to be faster and use less memory than runc, and therefore work in environments with tight memory usage requirements. Here is a simple benchmark of a container from creation to deletion.
-  |  Runtime | Time (mean ± σ) | 	Range (min … max) | vs youki(mean) | Version | 
-  | -------- | -------- | -------- | -------- | -------- |
-  | youki     | 111.5 ms ± 11.6 ms  | 84.0 ms ± 142.5 ms   | 100% | 0.3.3 |
-  | runc     | 224.6 ms ± 12.0 ms  | 190.5 ms ± 255.4 ms   | 200% | 1.1.7 |
-  | crun     | 47.3 ms ± 2.8 ms  | 42.4 ms ± 56.2 ms   | 42% | 1.15 |
-    <details>
+You don't need to go out and make your own GPU cluster to be able to benefit from safe, secure, and trustworthy AI with
+memory safe AI sandboxes.
+
+# Youki Benchmarks (To be validated and further expanded with Harmony)
+
+|  Runtime | Time (mean ± σ) | 	Range (min … max) | vs youki(mean) | Version |
+| -------- | -------- | -------- | -------- | -------- |
+| youki     | 111.5 ms ± 11.6 ms  | 84.0 ms ± 142.5 ms   | 100% | 0.3.3 |
+| runc     | 224.6 ms ± 12.0 ms  | 190.5 ms ± 255.4 ms   | 200% | 1.1.7 |
+| crun     | 47.3 ms ± 2.8 ms  | 42.4 ms ± 56.2 ms   | 42% | 1.15 |
+
+<details>
   <summary>Details about the benchmark</summary>
 
-  - A command used for the benchmark
+- A command used for the benchmark
 
-    ```bash
-    hyperfine --prepare 'sudo sync; echo 3 | sudo tee /proc/sys/vm/drop_caches' --warmup 10 --min-runs 100 'sudo ./youki create -b tutorial a && sudo ./youki start a && sudo ./youki delete -f a'
-    ```
+  ```bash
+  hyperfine --prepare 'sudo sync; echo 3 | sudo tee /proc/sys/vm/drop_caches' --warmup 10 --min-runs 100 'sudo ./harmony create -b tutorial a && sudo ./harmony start a && sudo ./harmony delete -f a'
+  ```
 
-  - Environment
+- Environment
 
-    ```console
-    $ ./youki info
-    Version           0.3.3
-    Commit            4f3c8307
-    Kernel-Release    6.5.0-35-generic
-    Kernel-Version    #35~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue May  7 09:00:52 UTC 2
-    Architecture      x86_64
-    Operating System  Ubuntu 22.04.4 LTS
-    Cores             16
-    Total Memory      63870
-    Cgroup setup      unified
-    Cgroup mounts
-    Namespaces        enabled
-      mount           enabled
-      uts             enabled
-      ipc             enabled
-      user            enabled
-      pid             enabled
-      network         enabled
-      cgroup          enabled
-    Capabilities
-    CAP_BPF           available
-    CAP_PERFMON       available
-    CAP_CHECKPOINT_RESTORE available
-    ```
+  ```console
+  $ ./youki info
+  Version           0.3.3
+  Commit            4f3c8307
+  Kernel-Release    6.5.0-35-generic
+  Kernel-Version    #35~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue May  7 09:00:52 UTC 2
+  Architecture      x86_64
+  Operating System  Ubuntu 22.04.4 LTS
+  Cores             16
+  Total Memory      63870
+  Cgroup setup      unified
+  Cgroup mounts
+  Namespaces        enabled
+    mount           enabled
+    uts             enabled
+    ipc             enabled
+    user            enabled
+    pid             enabled
+    network         enabled
+    cgroup          enabled
+  Capabilities
+  CAP_BPF           available
+  CAP_PERFMON       available
+  CAP_CHECKPOINT_RESTORE available
+  ```
 
-  </details>
+</details>
 
 - I have fun implementing this. In fact, this may be the most important.
 
@@ -124,7 +118,6 @@ $ sudo apt-get install    \
       libelf-dev          \
       libseccomp-dev      \
       libclang-dev        \
-      glibc-static        \
       libssl-dev
 ```
 
