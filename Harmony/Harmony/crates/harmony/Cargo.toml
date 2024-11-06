@@ -1,0 +1,65 @@
+[package]
+name = "harmony"
+version = "0.1.0"
+description = "A container runtime written in Rust with PyTorch, CUDA, encryption, and Python support"
+license-file = "../../LICENSE"
+repository = "https://github.com/qompassai/Sojourn/tree/main/Harmony"
+homepage = "https://qompass.ai/harmony"
+readme = "../../README.md"
+authors = ["Matt A. Porter <map@qompass.ai"]
+edition = "2021"
+build = "build.rs"
+keywords = ["harmony", "container", "pytorch", "cuda", "encryption"]
+
+[features]
+systemd = ["libcgroups/systemd", "libcontainer/systemd", "v2"]
+v2 = ["libcgroups/v2", "libcontainer/v2"]
+v1 = ["libcgroups/v1", "libcontainer/v1"]
+cgroupsv2_devices = ["libcgroups/cgroupsv2_devices", "libcontainer/cgroupsv2_devices"]
+wasm-wasmer = ["wasmer", "wasmer-wasix"]
+wasm-wasmedge = ["wasmedge-sdk/standalone", "wasmedge-sdk/static"]
+wasm-wasmtime = ["wasmtime", "wasi-common"]
+[dependencies.clap]
+version = "4.1.6"
+default-features = false
+features = ["std", "suggestions", "derive", "cargo", "help", "usage", "error-context"]
+
+[dependencies]
+anyhow = "1.0.88"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+libcgroups = { path = "../libcgroups", default-features = false, version = "0.4.1" } # MARK: Version
+libcontainer = { path = "../libcontainer", default-features = false, version = "0.4.1" } # MARK: Version
+liboci-cli = { path = "../liboci-cli", version = "0.4.1" } # MARK: Version
+nix = "0.28.0"
+once_cell = "1.19.0"
+pentacle = "1.0.0"
+procfs = "0.16.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tabwriter = "1"
+clap_complete = "4.1.3"
+caps = "0.5.5"
+wasmer = { version = "4.0.0", optional = true }
+wasmer-wasix = { version = "0.9.0", optional = true }
+wasmedge-sdk = { version = "0.13.2", optional = true }
+wasmtime = { version = "24.0.0", optional = true }
+wasi-common = { version = "24.0.0", optional = true }
+tracing = { version = "0.1.40", features = ["attributes"] }
+tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
+tracing-journald = "0.3.0"
+
+# Post-quantum cryptography
+pqcrypto = "0.17.0"
+
+# Classical cryptography
+ring = "0.17.5"
+openssl = { version = "0.10.57", features = ["vendored"] }
+
+[dev-dependencies]
+serial_test = "3.1.1"
+tempfile = "3"
+scopeguard = "1.2.0"
+
+[build-dependencies]
+anyhow = "1.0.88"
+vergen-gitcl = { version = "1.0.0", features = ["build"] }

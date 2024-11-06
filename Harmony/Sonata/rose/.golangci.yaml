@@ -1,0 +1,44 @@
+run:
+  timeout: 5m
+linters:
+  enable:
+    - asasalint
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - errcheck
+    - exportloopref
+    - gci
+    - gocheckcompilerdirectives
+    - gofmt
+    - gofumpt
+    - gosimple
+    - govet
+    - ineffassign
+    - intrange
+    - makezero
+    - misspell
+    - nilerr
+    - nolintlint
+    - nosprintfhostport
+    - staticcheck
+    - tenv
+    - testifylint
+    - unconvert
+    - unused
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+linters-settings:
+  gci:
+    sections: [standard, default, localmodule]
+severity:
+  default-severity: error
+  rules:
+    - linters:
+        - gofmt
+        - goimports
+        - intrange
+        - usestdlibvars
+      severity: info
