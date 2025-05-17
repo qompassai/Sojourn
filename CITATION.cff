@@ -1,13 +1,13 @@
 cff-version: 1.2.0
-title: "Qompass AI Sojourn"
+title: "sojourn"
 message: "If you use this software, please cite it as below."
 authors:
   - family-names: "Porter"
     given-names: "Matthew A."
     orcid: "https://orcid.org/0000-0002-0302-4812"
     affiliation: "Qompass AI"
-version: "v2025-05-16"
-date-released: "2025-05-16"
+version: "v2025-05-17"
+date-released: "2025-05-17"
 repository-code: "https://github.com/qompassai/sojourn"
 license: "Q-CDA-1.0"
 keywords:
