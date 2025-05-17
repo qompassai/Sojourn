@@ -1,5 +1,11 @@
+<!-- /qompassai/sojourn/README.md -->
+<!-- ---------------------------- -->
+<!-- Copyright (C) 2025 Qompass AI, All rights reserved -->
+
 # Sojourn
 Short-lived genAI Sandboxes
+
+![Repository Views](https://komarev.com/ghpvc/?username=qompassai-sojourn)
 
 <p align="center">
   <a href="https://www.gnu.org/licenses/agpl-3.0">
@@ -328,4 +334,3 @@ $$K = \text{KDF}(Z')$$
 
 </details>
 
-![Profile Views](https://komarev.com/ghpvc/?username=qompassai/Sojourn)
